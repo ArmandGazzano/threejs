@@ -1,0 +1,32 @@
+* {
+  margin: 0;
+  padding: 0;
+}
+
+html,
+body {
+  overflow: hidden;
+}
+
+.webgl {
+  position: fixed;
+  top: 0;
+  left: 0;
+  outline: none;
+}
+
+.section {
+  position: relative;
+  font-family: "Cabin", sans-serif;
+  color: #ffeded;
+  font-size: 2em;
+  padding: 1em;
+}
+
+section:nth-child(odd) {
+  justify-content: flex-end;
+}
+
+.button {
+  cursor: default;
+}
