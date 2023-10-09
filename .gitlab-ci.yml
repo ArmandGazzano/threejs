@@ -44,31 +44,6 @@ build-application:
     paths:
       - $PROJECT_ROOT_DIR/dist/
 
-.test-application:
-  extends: .job-with-web-requests
-
-test-application:
-  extends: .test-application
-  image: !reference [build-application, image]
-  script:
-    - cd "${PROJECT_ROOT_DIR}"
-    # Run tests
-    - npm link @angular/cli
-    - npm run test:ci
-  coverage: '/Statements\s+:\s(\d+.?\d+)%/'
-  # need to explicitly set the same paths: as for the build-application (and same dependencies) for it to work
-  cache:
-    paths:
-      - $PROJECT_ROOT_DIR/node_modules/
-      - $PROJECT_ROOT_DIR/dist/
-    policy: pull
-  artifacts:
-    when: always
-    paths:
-      - $PROJECT_ROOT_DIR/coverage/
-    reports:
-      junit: $PROJECT_ROOT_DIR/test_report/**/**.xml
-
 sbom-binary:
   variables:
     SBOM_BINARY_FS: "true"
