@@ -1,10 +1,74 @@
-image: ruby:2.7
+include:
+  - project: "dep/library/ci-library"
+    ref: production
+    file: "main.yml"
 
-pages:
+build-image-oauth2-proxy:
+  extends: build-image
+  variables:
+    DOCKERFILE_PATH: "oauth2-proxy/Dockerfile"
+    IMAGE_TAG_TO_BUILD: "${OAUTH_PROXY_IMAGE_TAG}"
   script:
-    - gem install bundler
-    - bundle install
-    - bundle exec jekyll build -d public
+    - mkdir oauth2-proxy/certs
+    - CopyCertsToDirectory "oauth2-proxy/certs"
+    - !reference [.build-image, script]
+  rules:
+    # include the job depending on some conditions
+    - if: '$ENABLE_OAUTH_PROXY == "true" && $CI_COMMIT_REF_NAME == $CI_DEFAULT_BRANCH'
+      exists:
+        - "oauth2-proxy/Dockerfile"
+
+
+variables:
+  PROJ_FILE_PATH: "package.json"
+  ENABLE_SBOM_BINARY: "true"
+  OAUTH_PROXY_IMAGE_TAG: "v7.4.0-update1"
+  # disabled by default, to avoid issues when not defined
+  ENABLE_OAUTH_PROXY: "false"
+build-application:
+  extends: .job-with-web-requests
+  image: ${CI_REGISTRY}/dep/library/project-oci-images/build-angular-node:18.17.1-update1
+  script:
+    - cd "${PROJECT_ROOT_DIR}"
+    # Build application
+    - npm ci
+    - npm run build
+  cache:
+    # cache node_modules & dist folders for pipeline performances
+    policy: pull-push
+    untracked: false
+    paths:
+      - $PROJECT_ROOT_DIR/node_modules/
+      - $PROJECT_ROOT_DIR/dist/
   artifacts:
     paths:
-      - public
+      - $PROJECT_ROOT_DIR/dist/
+
+.test-application:
+  extends: .job-with-web-requests
+
+test-application:
+  extends: .test-application
+  image: !reference [build-application, image]
+  script:
+    - cd "${PROJECT_ROOT_DIR}"
+    # Run tests
+    - npm link @angular/cli
+    - npm run test:ci
+  coverage: '/Statements\s+:\s(\d+.?\d+)%/'
+  # need to explicitly set the same paths: as for the build-application (and same dependencies) for it to work
+  cache:
+    paths:
+      - $PROJECT_ROOT_DIR/node_modules/
+      - $PROJECT_ROOT_DIR/dist/
+    policy: pull
+  artifacts:
+    when: always
+    paths:
+      - $PROJECT_ROOT_DIR/coverage/
+    reports:
+      junit: $PROJECT_ROOT_DIR/test_report/**/**.xml
+
+sbom-binary:
+  variables:
+    SBOM_BINARY_FS: "true"
