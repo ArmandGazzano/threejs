@@ -4,6 +4,9 @@ import * as CANNON from "cannon-es";
 
 // Variables
 let animationbool = false;
+let wireframebool = false;
+let meshbool = false;
+let meshmaterialbool = false;
 
 THREE.ColorManagement.enabled = false;
 
@@ -92,8 +95,10 @@ const createSphere = (radius, position) => {
 };
 
 // Create box
-const boxGeometry = new THREE.BoxGeometry(1, 1, 1);
+const boxGeometry = new THREE.BoxGeometry(2, 2, 2);
 const boxMaterial = new THREE.MeshStandardMaterial({});
+const boxPhongMaterial = new THREE.MeshPhongMaterial({ color: 0x00ff00 });
+
 const createBox = (width, height, depth, position) => {
   // Three.js mesh
   const mesh = new THREE.Mesh(boxGeometry, boxMaterial);
@@ -123,8 +128,8 @@ const createBox = (width, height, depth, position) => {
 // createBox(1, 1.5, 2, { x: 0, y: 3, z: 0 })
 
 const mesh = new THREE.Mesh(boxGeometry, boxMaterial);
-mesh.position.y += 0.5;
-scene.add(mesh);
+// mesh.position.y += 0.5;
+// scene.add(mesh);
 
 /**
  * Floor
@@ -137,7 +142,7 @@ const floor = new THREE.Mesh(
 );
 floor.receiveShadow = true;
 floor.rotation.x = -Math.PI * 0.5;
-scene.add(floor);
+// scene.add(floor);
 
 /**
  * Lights
@@ -179,7 +184,22 @@ window.addEventListener("resize", () => {
 });
 
 document.getElementById("basic_scene").addEventListener("click", () => {
-  console.log("click");
+  if (!meshbool) {
+    meshbool = true;
+    scene.add(mesh);
+  }
+});
+document.getElementById("cube_material").addEventListener("click", () => {
+  if (!meshmaterialbool) {
+    mesh.material = boxPhongMaterial;
+  } else {
+    mesh.material = boxMaterial;
+  }
+  meshmaterialbool = !meshmaterialbool;
+});
+document.getElementById("wireframe").addEventListener("click", () => {
+  wireframebool = !wireframebool;
+  mesh.material.wireframe = wireframebool;
 });
 document.getElementById("basic_animation").addEventListener("click", () => {
   animationbool = !animationbool;
