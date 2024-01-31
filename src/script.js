@@ -1,12 +1,18 @@
 import * as THREE from "three";
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
 import * as CANNON from "cannon-es";
+import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
 
 // Variables
 let animationbool = false;
 let wireframebool = false;
 let meshbool = false;
 let meshmaterialbool = false;
+let meshtexturematerialbool = false;
+let importbool = false;
+let physicsbool = false;
+
+let ship = null;
 
 THREE.ColorManagement.enabled = false;
 
@@ -18,6 +24,7 @@ const scene = new THREE.Scene();
 // Textures
 const textureLoader = new THREE.TextureLoader();
 const cubeTextureLoader = new THREE.CubeTextureLoader();
+const gltfloader = new GLTFLoader();
 
 const environmentMapTexture = cubeTextureLoader.load([
   "/textures/environmentMaps/0/px.png",
@@ -28,8 +35,12 @@ const environmentMapTexture = cubeTextureLoader.load([
   "/textures/environmentMaps/0/nz.png",
 ]);
 
-// Physics
+gltfloader.load("starwarsship/source/ship.gltf", (gltf) => {
+  ship = gltf.scene;
+  ship.scale.set(0.25, 0.25, 0.25);
+});
 
+// Physics
 const world = new CANNON.World();
 world.broadphase = new CANNON.SAPBroadphase(world);
 world.allowSleep = true;
@@ -58,7 +69,7 @@ world.addBody(floorBody);
 /**
  * Utils
  */
-const objectsToUpdate = [];
+let objectsToUpdate = [];
 
 // Create sphere
 const sphereGeometry = new THREE.SphereGeometry(1, 20, 20);
@@ -87,7 +98,7 @@ const createSphere = (radius, position) => {
     material: defaultMaterial,
   });
   body.position.copy(position);
-  body.addEventListener("collide", playHitSound);
+  // body.addEventListener("collide", playHitSound);
   world.addBody(body);
 
   // Save in objects
@@ -98,6 +109,10 @@ const createSphere = (radius, position) => {
 const boxGeometry = new THREE.BoxGeometry(2, 2, 2);
 const boxMaterial = new THREE.MeshStandardMaterial({});
 const boxPhongMaterial = new THREE.MeshPhongMaterial({ color: 0x00ff00 });
+var texture = textureLoader.load("textures/diamond.png");
+const textureMaterial = new THREE.MeshLambertMaterial({
+  map: texture,
+});
 
 const createBox = (width, height, depth, position) => {
   // Three.js mesh
@@ -185,9 +200,12 @@ window.addEventListener("resize", () => {
 
 document.getElementById("basic_scene").addEventListener("click", () => {
   if (!meshbool) {
-    meshbool = true;
     scene.add(mesh);
+  } else {
+    scene.remove(mesh);
   }
+
+  meshbool = !meshbool;
 });
 document.getElementById("cube_material").addEventListener("click", () => {
   if (!meshmaterialbool) {
@@ -197,12 +215,39 @@ document.getElementById("cube_material").addEventListener("click", () => {
   }
   meshmaterialbool = !meshmaterialbool;
 });
+document.getElementById("texture").addEventListener("click", () => {
+  if (!meshtexturematerialbool) {
+    mesh.material = textureMaterial;
+  } else {
+    mesh.material = boxMaterial;
+  }
+  meshtexturematerialbool = !meshtexturematerialbool;
+});
 document.getElementById("wireframe").addEventListener("click", () => {
   wireframebool = !wireframebool;
   mesh.material.wireframe = wireframebool;
 });
 document.getElementById("basic_animation").addEventListener("click", () => {
   animationbool = !animationbool;
+});
+document.getElementById("import").addEventListener("click", () => {
+  if (!importbool) {
+    scene.add(ship);
+  } else {
+    scene.remove(ship);
+  }
+  importbool = !importbool;
+});
+document.getElementById("physics").addEventListener("click", () => {
+  if (!physicsbool) {
+    scene.add(floor);
+  } else {
+    scene.remove(floor);
+    objectsToUpdate.forEach((obj) => scene.remove(obj));
+    objectsToUpdate = [];
+    scene.children = scene.children.filter((a) => !a.isMesh);
+  }
+  physicsbool = !physicsbool;
 });
 
 /**
@@ -247,6 +292,14 @@ const tick = () => {
 
   if (animationbool) {
     mesh.rotation.y += deltaTime;
+  }
+
+  // console.log(Math.trunc(deltaTime * 10000));
+  if (physicsbool && Math.trunc(deltaTime * 10000) % 9 == 0) {
+    createSphere(
+      Math.random(),
+      new THREE.Vector3(Math.random() * 8 - 4, 5, Math.random() * 8 - 4)
+    );
   }
 
   // Update physics
